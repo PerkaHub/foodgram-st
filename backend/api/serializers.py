@@ -1,11 +1,8 @@
 import base64
+import binascii
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-from django.shortcuts import get_object_or_404
-from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.validators import UniqueTogetherValidator
 
 from recipes.models import (
     Favorite,
@@ -40,7 +37,9 @@ class Base64ImageField(serializers.ImageField):
             if isinstance(data, str) and data.startswith("data:image"):
                 parts = data.split(";base64,")
                 if len(parts) != 2:
-                    raise serializers.ValidationError(ERROR_MESSAGES["invalid_base64"])
+                    raise serializers.ValidationError(
+                        ERROR_MESSAGES["invalid_base64"]
+                    )
 
                 format_part = parts[0]
                 imgstr = parts[1]
@@ -75,7 +74,9 @@ class IngredientSerializer(serializers.ModelSerializer):
 class RecipeIngredientSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source="ingredient.id")
     name = serializers.ReadOnlyField(source="ingredient.name")
-    measurement_unit = serializers.ReadOnlyField(source="ingredient.measurement_unit")
+    measurement_unit = serializers.ReadOnlyField(
+        source="ingredient.measurement_unit"
+    )
 
     class Meta:
         model = RecipeIngredient
@@ -164,7 +165,10 @@ class FollowSerializer(UserSerializer):
         if recipes_limit and recipes_limit.isdigit():
             recipes = recipes[: int(recipes_limit)]
 
-        return ShortRecipeSerializer(recipes, many=True, context=self.context).data
+        return ShortRecipeSerializer(
+            recipes,
+            many=True,
+            context=self.context).data
 
     def get_recipes_count(self, obj):
         return obj.recipes.count()
@@ -178,7 +182,9 @@ class RecipeIngredientCreateSerializer(serializers.Serializer):
         try:
             Ingredient.objects.get(id=value)
         except Ingredient.DoesNotExist:
-            raise serializers.ValidationError(ERROR_MESSAGES["ingredient_not_found"])
+            raise serializers.ValidationError(
+                ERROR_MESSAGES["ingredient_not_found"]
+            )
         return value
 
 
@@ -227,7 +233,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredient_ids = []
         for ingredient in value:
             if ingredient["id"] in ingredient_ids:
-                raise serializers.ValidationError("Ингредиенты не должны повторяться")
+                raise serializers.ValidationError(
+                    "Ингредиенты не должны повторяться"
+                )
             ingredient_ids.append(ingredient["id"])
 
         return value
@@ -265,7 +273,9 @@ class RecipeSerializer(serializers.ModelSerializer):
             recipe_ingredients = [
                 RecipeIngredient(
                     recipe=instance,
-                    ingredient=Ingredient.objects.get(id=ingredient_data["id"]),
+                    ingredient=Ingredient.objects.get(
+                        id=ingredient_data["id"]
+                    ),
                     amount=ingredient_data["amount"],
                 )
                 for ingredient_data in ingredients_data
@@ -290,7 +300,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return False
-        return ShoppingCart.objects.filter(user=request.user, recipe=obj).exists()
+        return ShoppingCart.objects.filter(
+            user=request.user,
+            recipe=obj
+            ).exists()
 
 
 class AddFavorite(serializers.ModelSerializer):

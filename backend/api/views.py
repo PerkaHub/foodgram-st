@@ -1,7 +1,10 @@
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly
+)
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.exceptions import PermissionDenied
 from django.http import HttpResponse
@@ -116,17 +119,27 @@ class FollowViewSet(UserViewSet):
     )
     def subscriptions(self, request):
         user = request.user
-        queryset = User.objects.filter(following__user=user).prefetch_related("recipes")
+        queryset = User.objects.filter(
+            following__user=user
+            ).prefetch_related("recipes")
         if not queryset:
             return Response(
                 ERRORS["no_subscriptions"], status=status.HTTP_400_BAD_REQUEST
             )
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)
-        serializer = FollowSerializer(page, many=True, context={"request": request})
+        serializer = FollowSerializer(
+            page,
+            many=True,
+            context={"request": request}
+        )
         return paginator.get_paginated_response(serializer.data)
 
-    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsAuthenticated]
+    )
     def me(self, request):
         serializer = UserSerializer(request.user, context={"request": request})
         return Response(serializer.data)
@@ -146,7 +159,8 @@ class FollowViewSet(UserViewSet):
         if request.method in ["PUT", "PATCH"]:
             if "avatar" not in request.data:
                 return Response(
-                    {"errors": ERRORS["no_image"]}, status=status.HTTP_400_BAD_REQUEST
+                    {"errors": ERRORS["no_image"]},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
             serializer = AddAvatar(user, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
@@ -192,7 +206,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         filters = {}
         if self.request.user.is_authenticated:
             author = self.request.query_params.get("author")
-            is_in_shopping_cart = self.request.query_params.get("is_in_shopping_cart")
+            is_in_shopping_cart = self.request.query_params.get(
+                "is_in_shopping_cart"
+            )
             is_favorited = self.request.query_params.get("is_favorited")
 
             if author:
@@ -242,18 +258,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def shopping_cart(self, request, pk=None):
         recipe = get_object_or_404(Recipe, id=pk)
         user = request.user
+
         if request.method == "POST":
             if ShoppingCart.objects.filter(recipe=recipe, user=user).exists():
                 return Response(
                     {"error": ERRORS["already_in_cart"]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            ShoppingCart.objects.create(recipe=recipe, user=user)
+            ShoppingCart.objects.create(user=user, recipe=recipe)
             serializer = AddFavorite(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == "DELETE":
-            shopping_cart = ShoppingCart.objects.filter(recipe=recipe, user=user)
+            shopping_cart = ShoppingCart.objects.filter(
+                recipe=recipe,
+                user=user
+            )
             if not shopping_cart.exists():
                 return Response(
                     {"errors": ERRORS["not_in_cart"]},
@@ -275,7 +295,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         if cached_data:
             response = HttpResponse(cached_data, content_type="text/csv")
-            response["Content-Disposition"] = 'attachment; filename="shopping_list.txt"'
+            response["Content-Disposition"] = '''
+                attachment; filename="shopping_list.txt"
+            '''
             return response
 
         ingredients = (
@@ -305,7 +327,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         cache.set(cache_key, content, 300)  # кэшируем на 5 минут
 
         response = HttpResponse(content, content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="shopping_list.txt"'
+        response["Content-Disposition"] = '''
+            attachment; filename="shopping_list.txt"
+        '''
         return response
 
     @action(detail=True, methods=["get"], url_path="get-link")

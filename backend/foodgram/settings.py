@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from datetime import timedelta
 
 
 load_dotenv()
@@ -28,7 +27,8 @@ AUTH_USER_MODEL = "users.User"
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv(
-    "SECRET_KEY", "django-insecure-tmi2ldqsbn^8zeg8$gziawo0t2@)9895aki^_!dw)hkpuceeh&"
+    "SECRET_KEY",
+    "django-insecure-tmi2ldqsbn^8zeg8$gziawo0t2@)9895aki^_!dw)hkpuceeh&"
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!

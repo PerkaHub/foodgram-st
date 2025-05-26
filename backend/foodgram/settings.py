@@ -198,7 +198,6 @@ DJOSER = {
     "TOKEN_MODEL": "rest_framework.authtoken.models.Token",
     "SERIALIZERS": {
         "user": "api.serializers.UserSerializer",
-        #'user_create': 'api.serializers.CreateUserSerializer',
         "current_user": "api.serializers.UserSerializer",
     },
     "PERMISSIONS": {

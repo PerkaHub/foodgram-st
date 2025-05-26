@@ -181,15 +181,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+        return None
 
     def perform_update(self, serializer):
         if serializer.instance.author != self.request.user:
             raise PermissionDenied(detail=ERRORS["cant_edit"])
+        serializer.save()
+        return None
 
     def perform_destroy(self, instance):
         if instance.author != self.request.user:
             raise PermissionDenied(detail=ERRORS["cant_delete"])
         instance.delete()
+        return None
 
     def get_serializer_context(self):
         """Добавляем request в контекст сериализатора"""

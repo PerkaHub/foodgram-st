@@ -110,6 +110,11 @@ class FollowViewSet(UserViewSet):
                 )
             follow.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        return Response(
+        {"error": "Метод не разрешен"},
+        status=status.HTTP_405_METHOD_NOT_ALLOWED
+    )
 
     @action(
         detail=False,
@@ -171,6 +176,12 @@ class FollowViewSet(UserViewSet):
             user.avatar = None
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        return Response(
+            {"error": "Метод не разрешен"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+    
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -181,23 +192,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-        return None
 
     def perform_update(self, serializer):
         if serializer.instance.author != self.request.user:
             raise PermissionDenied(detail=ERRORS["cant_edit"])
         serializer.save()
-        return None
 
     def perform_destroy(self, instance):
         if instance.author != self.request.user:
             raise PermissionDenied(detail=ERRORS["cant_delete"])
         instance.delete()
-        return None
 
     def get_serializer_context(self):
         """Добавляем request в контекст сериализатора"""
-
         context = super().get_serializer_context()
         context["request"] = self.request
         return context
@@ -370,4 +377,7 @@ def redirect_by_hash(request, url_hash):
         return redirect(f"{settings.BASE_URL}/api/recipes/{recipe_id}")
     except Exception as e:
         logger.error(f"Error redirecting hash {url_hash}: {str(e)}")
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Рецепт не найден"},
+            status=status.HTTP_404_NOT_FOUND
+        )

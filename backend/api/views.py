@@ -66,7 +66,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = Ingredient.objects.all()
         name = self.request.query_params.get("name")
         if name:
-            queryset = queryset.filter(name__istartswith=name)
+            return queryset.filter(name__istartswith=name)
         return queryset
 
 
@@ -121,7 +121,7 @@ class FollowViewSet(UserViewSet):
         user = request.user
         queryset = User.objects.filter(
             following__user=user
-            ).prefetch_related("recipes")
+        ).prefetch_related("recipes")
         if not queryset:
             return Response(
                 ERRORS["no_subscriptions"], status=status.HTTP_400_BAD_REQUEST

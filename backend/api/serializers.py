@@ -302,8 +302,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             return False
         return ShoppingCart.objects.filter(
             user=request.user,
-            recipe=obj
-            ).exists()
+            recipe=obj).exists()
 
 
 class AddFavorite(serializers.ModelSerializer):

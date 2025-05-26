@@ -241,15 +241,6 @@ CACHES = {
     }
 }
 
-"""
-    {
-        'NAME': 'path.to.validators.AllowedCharactersPasswordValidator',
-        'OPTIONS': {
-            'pattern': r'^[\w.@+-]+\z'
-        }
-    },
-"""
-
 # Настройки CORS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",

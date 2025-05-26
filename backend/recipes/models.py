@@ -157,7 +157,11 @@ class Favorite(models.Model):
 
 
 class RecipeShortLink(models.Model):
-    recipe = models.ForeignKey(Recipe, verbose_name="Рецепт", on_delete=models.CASCADE)
+    recipe = models.ForeignKey(
+        Recipe,
+        verbose_name="Рецепт",
+        on_delete=models.CASCADE
+    )
     url_hash = models.CharField(
         verbose_name="Хэш", max_length=10, unique=True, db_index=True
     )

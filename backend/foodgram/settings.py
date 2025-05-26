@@ -26,33 +26,41 @@ AUTH_USER_MODEL = 'users.User'
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-tmi2ldqsbn^8zeg8$gziawo0t2@)9895aki^_!dw)hkpuceeh&'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-tmi2ldqsbn^8zeg8$gziawo0t2@)9895aki^_!dw)hkpuceeh&')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(int(os.getenv('DEBUG', '0')))
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
-BASE_URL = 'http://127.0.0.1:8000'
+BASE_URL = os.getenv('BASE_URL', 'http://127.0.0.1:8000')
 
 
 # Application definition
 
-INSTALLED_APPS = [
+DJANGO_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+]
+
+THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',
     'django_filters',
+]
+
+LOCAL_APPS = [
     'api.apps.ApiConfig',
     'recipes.apps.RecipesConfig',
     'users.apps.UsersConfig',
 ]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -62,8 +70,12 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    #'foodgram.middleware.RequestLoggingMiddleware',
 ]
+
+if DEBUG:
+    MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
+    INSTALLED_APPS.append('debug_toolbar')
+    INTERNAL_IPS = ['127.0.0.1']
 
 ROOT_URLCONF = 'foodgram.urls'
 
@@ -117,6 +129,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 8}
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -124,14 +137,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
-    '''
-    {
-        'NAME': 'path.to.validators.AllowedCharactersPasswordValidator',
-        'OPTIONS': {
-            'pattern': r'^[\w.@+-]+\z'
-        }
-    },
-    '''
 ]
 
 
@@ -151,10 +156,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = BASE_DIR / 'static'
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # Default primary key field type
@@ -164,7 +170,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -175,6 +181,14 @@ REST_FRAMEWORK = {
         'rest_framework.pagination.PageNumberPagination'
     ),
     'PAGE_SIZE': 6,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour'
+    }
 }
 
 DJOSER = {
@@ -184,25 +198,54 @@ DJOSER = {
     'TOKEN_MODEL': 'rest_framework.authtoken.models.Token',
     'SERIALIZERS': {
         'user': 'api.serializers.UserSerializer',
-        'user_create': 'api.serializers.CreateUserSerializer',
+        #'user_create': 'api.serializers.CreateUserSerializer',
         'current_user': 'api.serializers.UserSerializer',
     },
+    'PERMISSIONS': {
+        'user': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
+        'user_list': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
+        'current_user': ['rest_framework.permissions.IsAuthenticated'],
+    }
 }
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-        },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': 'debug.log',
+            'formatter': 'verbose',
         },
     },
-    'root': {
-        'handlers': ['console', 'file'],
-        'level': 'DEBUG',
-    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': True,
+        },
+    }
 }
+
+# Cache settings
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5 минут таймаут
+    }
+}
+
+'''
+    {
+        'NAME': 'path.to.validators.AllowedCharactersPasswordValidator',
+        'OPTIONS': {
+            'pattern': r'^[\w.@+-]+\z'
+        }
+    },
+'''

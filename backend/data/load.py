@@ -1,11 +1,11 @@
 import json
-import os
-
 import django
-from recipes.models import Ingredient
+import os
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "foodgram.settings")
 django.setup()
+
+from recipes.models import Ingredient
 
 
 def load_data():

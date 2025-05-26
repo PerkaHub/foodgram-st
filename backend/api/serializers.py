@@ -1,12 +1,12 @@
-import base64
-import binascii
-
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.core.validators import MinValueValidator
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
+
+import base64
+import binascii
 
 from recipes.models import (
     Favorite,
@@ -122,7 +122,9 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 class RecipeIngredientCreateSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
     amount = serializers.IntegerField(
-        validators=[MinValueValidator(1, message="Количество не может быть меньше 1")]
+        validators=[
+            MinValueValidator(1, message="Количество не может быть меньше 1")
+        ]
     )
 
     class Meta:

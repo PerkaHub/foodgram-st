@@ -1,11 +1,8 @@
 import base64
+import binascii
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-from django.shortcuts import get_object_or_404
-from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.validators import UniqueTogetherValidator
 
 from recipes.models import (
     Favorite,

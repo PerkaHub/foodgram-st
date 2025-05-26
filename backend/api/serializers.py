@@ -1,12 +1,12 @@
 import base64
 import binascii
+
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.core.validators import MinValueValidator
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
-from rest_framework import serializers, status
-from rest_framework.validators import UniqueTogetherValidator
+from rest_framework import serializers
 
 from recipes.models import (
     Favorite,
@@ -17,7 +17,6 @@ from recipes.models import (
     RecipeShortLink,
     ShoppingCart,
 )
-
 
 User = get_user_model()
 

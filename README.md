@@ -29,7 +29,7 @@ Foodgram - это веб-приложение, в котором пользов�
 
 1. Клонируйте репозиторий:
 ```bash
-git clone <ваш-репозиторий>
+git clone git@github.com:PerkaHub/foodgram-st.git
 cd foodgram
 ```
 
@@ -46,21 +46,6 @@ SECRET_KEY=your-secret-key
 3. Запустите проект через Docker Compose:
 ```bash
 docker-compose up -d --build
-```
-
-4. Выполните миграции:
-```bash
-docker-compose exec backend python manage.py migrate
-```
-
-5. Создайте суперпользователя:
-```bash
-docker-compose exec backend python manage.py createsuperuser
-```
-
-6. Соберите статические файлы:
-```bash
-docker-compose exec backend python manage.py collectstatic --no-input
 ```
 
 ## Основной функционал 📋
@@ -86,3 +71,7 @@ docker-compose exec backend python manage.py collectstatic --no-input
 ## Автор проекта ✨
 
 [Егор Опекин]
+
+## Лицензия 📄
+
+Этот проект лицензирован под MIT License - подробности см. в файле [LICENSE](LICENSE) 

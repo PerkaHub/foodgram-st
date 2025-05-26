@@ -110,11 +110,11 @@ class FollowViewSet(UserViewSet):
                 )
             follow.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        
+
         return Response(
-        {"error": "Метод не разрешен"},
-        status=status.HTTP_405_METHOD_NOT_ALLOWED
-    )
+            {"error": "Метод не разрешен"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
 
     @action(
         detail=False,
@@ -176,12 +176,11 @@ class FollowViewSet(UserViewSet):
             user.avatar = None
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        
+
         return Response(
             {"error": "Метод не разрешен"},
             status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
-    
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -260,6 +259,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
             favorite.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
+        return Response(
+            {"error": "Метод не разрешен"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
     @action(
         detail=True,
         methods=["post", "delete"],
@@ -292,6 +296,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
             shopping_cart.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return Response(
+            {"error": "Метод не разрешен"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
 
     @action(
         detail=False,

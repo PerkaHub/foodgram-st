@@ -48,6 +48,10 @@ SECRET_KEY=your-secret-key
 docker-compose up -d --build
 ```
 
+4. Загрузите ингридиенты в базу данных:
+```bash
+docker-compose exec backend python manage.py load_ingredients
+```
 ## Основной функционал 📋
 
 - 👤 Регистрация и авторизация пользователей

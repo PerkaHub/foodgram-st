@@ -35,12 +35,14 @@ cd foodgram
 
 2. Создайте файл `.env` в корневой директории проекта:
 ```
+DB_ENGINE=django.db.backends.postgresql
 DB_NAME=postgres
-DB_USER=postgres
-DB_PASSWORD=postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
 DB_HOST=db
 DB_PORT=5432
-SECRET_KEY=your-secret-key
+DEBUG=False
+ALLOWED_HOSTS=127.0.0.1,localhost
 ```
 
 3. Запустите проект через Docker Compose:

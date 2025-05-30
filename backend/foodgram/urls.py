@@ -15,14 +15,25 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from foodgram import settings
 from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
-from api.views import redirect_by_hash
+
+from api.views import recipe_hash_redirect
+from foodgram import settings
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("a/r/<str:url_hash>/", redirect_by_hash, name="recipe_short_link"),
-    path("api/", include("api.urls")),
+    path(
+        "admin/",
+        admin.site.urls
+    ),
+    path(
+        "a/r/<str:url_hash>/",
+        recipe_hash_redirect,
+        name="recipe_short_link"
+    ),
+    path(
+        "api/",
+        include("api.urls")
+    ),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

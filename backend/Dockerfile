@@ -15,4 +15,4 @@ COPY . .
 RUN mkdir -p /app/static/
 
 # Запуск миграций, сбор статики и запуск сервера
-CMD sh -c "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn foodgram.wsgi --bind 0.0.0.0:8000"
+CMD sh -c "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn foodgram.wsgi:application --bind 0.0.0.0:8000"

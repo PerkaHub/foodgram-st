@@ -13,16 +13,20 @@ from django.db.models import Sum
 from django.conf import settings
 from django.core.cache import cache
 from djoser.views import UserViewSet
+from django_filters.rest_framework import DjangoFilterBackend
+
 import csv
+import django_filters
 import io
 import hashlib
 import base64
 import logging
 
+from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     RecipeSerializer,
     IngredientSerializer,
-    AddFavorite,
+    ShortRecipeSerializer,
     UserSerializer,
     FollowSerializer,
     AddAvatar,
@@ -52,25 +56,52 @@ ERRORS = {
     "not_in_cart": "Рецепт не в корзине!",
     "no_subscriptions": "Вы ни на кого не подписаны.",
     "no_image": "Необходимо загрузить изображение",
-    "cant_edit": "Вы не можете изменять чужие рецепты",
     "cant_delete": "Вы не можете удалять чужие рецепты",
 }
+
+
+class IngredientFilter(django_filters.FilterSet):
+    name = django_filters.CharFilter(
+        field_name='name',
+        lookup_expr='istartswith'
+    )
+
+    class Meta:
+        model = Ingredient
+        fields = ['name']
+
+
+class RecipeFilter(django_filters.FilterSet):
+    is_favorited = django_filters.NumberFilter(method='filter_is_favorited')
+    is_in_shopping_cart = django_filters.NumberFilter(
+        method='filter_is_in_shopping_cart'
+    )
+    author = django_filters.NumberFilter(field_name='author__id')
+
+    class Meta:
+        model = Recipe
+        fields = ['author', 'is_favorited', 'is_in_shopping_cart']
+
+    def filter_is_favorited(self, queryset, name, value):
+        if value and self.request.user.is_authenticated:
+            return queryset.filter(favorite__user=self.request.user)
+        return queryset
+
+    def filter_is_in_shopping_cart(self, queryset, name, value):
+        if value and self.request.user.is_authenticated:
+            return queryset.filter(shoppingcart__user=self.request.user)
+        return queryset
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = None
-
-    def get_queryset(self):
-        queryset = Ingredient.objects.all()
-        name = self.request.query_params.get("name")
-        if name:
-            return queryset.filter(name__istartswith=name)
-        return queryset
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = IngredientFilter
 
 
-class FollowViewSet(UserViewSet):
+class UserProfileViewSet(UserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
@@ -186,16 +217,13 @@ class FollowViewSet(UserViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
     pagination_class = LimitOffsetPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-
-    def perform_update(self, serializer):
-        if serializer.instance.author != self.request.user:
-            raise PermissionDenied(detail=ERRORS["cant_edit"])
-        serializer.save()
 
     def perform_destroy(self, instance):
         if instance.author != self.request.user:
@@ -205,30 +233,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_serializer_context(self):
         """Добавляем request в контекст сериализатора"""
         context = super().get_serializer_context()
-        context["request"] = self.request
         return context
-
-    def get_queryset(self):
-        queryset = Recipe.objects.select_related("author").prefetch_related(
-            "ingredients"
-        )
-
-        filters = {}
-        if self.request.user.is_authenticated:
-            author = self.request.query_params.get("author")
-            is_in_shopping_cart = self.request.query_params.get(
-                "is_in_shopping_cart"
-            )
-            is_favorited = self.request.query_params.get("is_favorited")
-
-            if author:
-                filters["author_id"] = author
-            if is_in_shopping_cart:
-                filters["shoppingcart__user"] = self.request.user
-            if is_favorited:
-                filters["favorite__user"] = self.request.user
-
-        return queryset.filter(**filters).distinct()
 
     @action(
         detail=True,
@@ -246,7 +251,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             Favorite.objects.create(user=user, recipe=recipe)
-            serializer = AddFavorite(recipe)
+            serializer = ShortRecipeSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == "DELETE":
@@ -281,7 +286,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             ShoppingCart.objects.create(user=user, recipe=recipe)
-            serializer = AddFavorite(recipe)
+            serializer = ShortRecipeSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == "DELETE":
@@ -315,9 +320,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         if cached_data:
             response = HttpResponse(cached_data, content_type="text/csv")
-            response["Content-Disposition"] = '''
-                attachment; filename="shopping_list.txt"
-            '''
+            response["Content-Disposition"] = (
+                'attachment; '
+                'filename="shopping_list.txt"'
+            )
             return response
 
         ingredients = (
@@ -347,9 +353,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         cache.set(cache_key, content, 300)  # кэшируем на 5 минут
 
         response = HttpResponse(content, content_type="text/csv")
-        response["Content-Disposition"] = '''
-            attachment; filename="shopping_list.txt"
-        '''
+        content_disposition = (
+            'attachment; '
+            'filename="shopping_list.txt"'
+        )
+        response['Content-Disposition'] = content_disposition
         return response
 
     @action(detail=True, methods=["get"], url_path="get-link")
@@ -373,7 +381,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return base64.urlsafe_b64encode(hash_bytes).decode()[:8]
 
 
-def redirect_by_hash(request, url_hash):
+def recipe_hash_redirect(request, url_hash):
     try:
         cache_key = f"recipe_hash_{url_hash}"
         recipe_id = cache.get(cache_key)

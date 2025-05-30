@@ -3,25 +3,51 @@ from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 
 
+class ModelConstants:
+    # Ingredient
+    INGREDIENT_NAME_MAX_LENGTH = 128
+    MEASUREMENT_UNIT_MAX_LENGTH = 128
+
+    # Recipe
+    RECIPE_NAME_MAX_LENGTH = 128
+    MIN_COOKING_TIME = 1
+    IMAGE_UPLOAD_PATH = "recipes_photo/"
+
+    # RecipeIngredient
+    MIN_INGREDIENT_AMOUNT = 1
+
+    # RecipeShortLink
+    URL_HASH_LENGTH = 10
+
+    # TextMessage
+    MESSAGE_COOKING_TIME_MIN = "Время не может быть меньше 1 минуты"
+
+
 User = get_user_model()
 
 
 class Ingredient(models.Model):
     name = models.CharField(
         verbose_name="Название ингредиента",
-        max_length=128,
+        max_length=ModelConstants.INGREDIENT_NAME_MAX_LENGTH,
         unique=True,
         db_index=True,
     )
     measurement_unit = models.CharField(
         verbose_name="Единица измерения",
-        max_length=128,
+        max_length=ModelConstants.MEASUREMENT_UNIT_MAX_LENGTH,
     )
 
     class Meta:
         verbose_name = "Ингредиент"
         verbose_name_plural = "Ингредиенты"
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name", "measurement_unit"],
+                name="unique_name_measurement_unit"
+            ),
+        ]
 
     def __str__(self):
         return f"{self.name}, {self.measurement_unit}"
@@ -30,7 +56,7 @@ class Ingredient(models.Model):
 class Recipe(models.Model):
     name = models.CharField(
         verbose_name="Название рецепта",
-        max_length=128,
+        max_length=ModelConstants.RECIPE_NAME_MAX_LENGTH,
         db_index=True,
     )
     author = models.ForeignKey(
@@ -43,7 +69,9 @@ class Recipe(models.Model):
     text = models.TextField(verbose_name="Описание")
     image = models.ImageField(
         verbose_name="Фотография блюда",
-        upload_to="recipes_photo/",
+        upload_to=ModelConstants.IMAGE_UPLOAD_PATH,
+        blank=True,
+        null=True
     )
     ingredients = models.ManyToManyField(
         Ingredient,
@@ -56,8 +84,8 @@ class Recipe(models.Model):
         verbose_name="Время приготовления (минуты)",
         validators=[
             MinValueValidator(
-                1,
-                message="Время не может быть меньше 1 минуты",
+                ModelConstants.MIN_COOKING_TIME,
+                message=ModelConstants.MESSAGE_COOKING_TIME_MIN,
             ),
         ],
     )
@@ -162,7 +190,10 @@ class RecipeShortLink(models.Model):
         on_delete=models.CASCADE
     )
     url_hash = models.CharField(
-        verbose_name="Хэш", max_length=10, unique=True, db_index=True
+        verbose_name="Хэш",
+        max_length=ModelConstants.URL_HASH_LENGTH,
+        unique=True,
+        db_index=True
     )
     created_at = models.DateTimeField(
         verbose_name="Дата создания ссылки", auto_now_add=True

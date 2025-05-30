@@ -230,11 +230,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             raise PermissionDenied(detail=ERRORS["cant_delete"])
         instance.delete()
 
-    def get_serializer_context(self):
-        """Добавляем request в контекст сериализатора"""
-        context = super().get_serializer_context()
-        return context
-
     @action(
         detail=True,
         methods=["post", "delete"],

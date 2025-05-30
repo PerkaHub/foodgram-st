@@ -1,5 +1,4 @@
 from rest_framework.permissions import BasePermission
-from rest_framework.exceptions import PermissionDenied
 
 CANT_EDIT = "Вы не можете изменять чужие рецепты"
 

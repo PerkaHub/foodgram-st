@@ -1,6 +1,7 @@
-import re
 from django.core.exceptions import ValidationError
 from django.utils.deconstruct import deconstructible
+
+import re
 
 
 @deconstructible

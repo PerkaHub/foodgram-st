@@ -182,17 +182,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             "is_in_shopping_cart",
         )
 
-    def _create_recipe_ingredients(self, recipe, ingredients_data):
-        recipe_ingredients = [
-            RecipeIngredient(
-                recipe=recipe,
-                ingredient=ingredient_data["id"],
-                amount=ingredient_data["amount"],
-            )
-            for ingredient_data in ingredients_data
-        ]
-        RecipeIngredient.objects.bulk_create(recipe_ingredients)
-
     def validate(self, data):
         request = self.context.get('request')
         method = request.method if request else None
@@ -223,12 +212,27 @@ class RecipeSerializer(serializers.ModelSerializer):
                 ingredient_ids.add(ingredient['id'])
         return data
 
+    def _create_ingredients(self, recipe, ingredients_data):
+        """Создает ингредиенты для рецепта."""
+        recipe_ingredients = [
+            RecipeIngredient(
+                recipe=recipe,
+                ingredient=ingredient_data["id"],
+                amount=ingredient_data["amount"],
+            )
+            for ingredient_data in ingredients_data
+        ]
+        RecipeIngredient.objects.bulk_create(recipe_ingredients)
+
+    def _update_ingredients(self, recipe, ingredients_data):
+        """Обновляет ингредиенты рецепта."""
+        recipe.ingredients_items.all().delete()
+        self._create_ingredients(recipe, ingredients_data)
+
     def create(self, validated_data):
         ingredients_data = validated_data.pop("ingredients")
         recipe = Recipe.objects.create(**validated_data)
-
-        self._create_recipe_ingredients(recipe, ingredients_data)
-
+        self._create_ingredients(recipe, ingredients_data)
         return recipe
 
     def update(self, instance, validated_data):
@@ -239,10 +243,8 @@ class RecipeSerializer(serializers.ModelSerializer):
             instance.image = validated_data.get("image", instance.image)
             instance.save()
 
-        # Обновляем ингредиенты
         if ingredients_data is not None:
-            instance.ingredients_items.all().delete()
-            self._create_recipe_ingredients(instance, ingredients_data)
+            self._update_ingredients(instance, ingredients_data)
 
         return instance
 

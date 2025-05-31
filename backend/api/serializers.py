@@ -121,7 +121,9 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
 
 class FollowSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
+    recipes_count = serializers.IntegerField(
+        source="recipes.count", read_only=True
+    )
 
     class Meta:
         model = User
@@ -149,9 +151,6 @@ class FollowSerializer(UserSerializer):
             recipes,
             many=True,
             context=self.context).data
-
-    def get_recipes_count(self, obj):
-        return obj.recipes.count()
 
 
 class RecipeIngredientCreateSerializer(serializers.Serializer):

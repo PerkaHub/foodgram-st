@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import User
-
+from const.const import SEARCH_EMAIL_USERNAME
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -14,4 +14,4 @@ class UserAdmin(admin.ModelAdmin):
         "password"
     )
     search_fields = ("email", "username")
-    search_help_text = "Поиск по электронной почте и никнейму"
+    search_help_text = SEARCH_EMAIL_USERNAME

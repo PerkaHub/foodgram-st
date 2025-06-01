@@ -1,3 +1,9 @@
+import csv
+import io
+import hashlib
+import base64
+import logging
+
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -6,7 +12,6 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly
 )
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.db.models import Sum
@@ -15,16 +20,12 @@ from django.core.cache import cache
 from djoser.views import UserViewSet
 from django_filters.rest_framework import DjangoFilterBackend
 
-import csv
-import io
-import hashlib
-import base64
-import logging
-
 from .permissions import IsAuthorOrReadOnly
 from .filters import RecipeFilter, IngredientFilter
+from const.errors import ERROR_MESSAGES
 from .serializers import (
-    RecipeSerializer,
+    RecipeReadSerializer,
+    RecipeWriteSerializer,
     IngredientSerializer,
     ShortRecipeSerializer,
     UserSerializer,
@@ -44,20 +45,6 @@ from recipes.models import (
 
 
 logger = logging.getLogger(__name__)
-
-
-ERRORS = {
-    "self_subscribe": "Нельзя подписаться на самого себя!",
-    "already_subscribed": "Вы уже подписаны на этого пользователя!",
-    "not_subscribed": "Вы не подписаны на этого пользователя!",
-    "already_in_favorites": "Рецепт уже в избранном!",
-    "not_in_favorites": "Рецепт не в избранном!",
-    "already_in_cart": "Рецепт уже добавлен в корзину!",
-    "not_in_cart": "Рецепт не в корзине!",
-    "no_subscriptions": "Вы ни на кого не подписаны.",
-    "no_image": "Необходимо загрузить изображение",
-    "cant_delete": "Вы не можете удалять чужие рецепты",
-}
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -87,12 +74,12 @@ class UserProfileViewSet(UserViewSet):
         if request.method == "POST":
             if user == author:
                 return Response(
-                    {"errors": ERRORS["self_subscribe"]},
+                    {"errors": ERROR_MESSAGES["self_subscribe"]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if Follow.objects.filter(user=user, author=author).exists():
+            if user.follower.filter(author=author).exists():
                 return Response(
-                    {"errors": ERRORS["already_subscribed"]},
+                    {"errors": ERROR_MESSAGES["already_subscribed"]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             Follow.objects.create(user=user, author=author)
@@ -100,17 +87,17 @@ class UserProfileViewSet(UserViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == "DELETE":
-            follow = Follow.objects.filter(author=author, user=user)
+            follow = user.follower.filter(author=author)
             if not follow.exists():
                 return Response(
-                    {"errors": ERRORS["not_subscribed"]},
+                    {"errors": ERROR_MESSAGES["not_subscribed"]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             follow.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(
-            {"error": "Метод не разрешен"},
+            {"error": ERROR_MESSAGES["method_not_allowed"]},
             status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
@@ -127,7 +114,8 @@ class UserProfileViewSet(UserViewSet):
         ).prefetch_related("recipes")
         if not queryset:
             return Response(
-                ERRORS["no_subscriptions"], status=status.HTTP_400_BAD_REQUEST
+                ERROR_MESSAGES["no_subscriptions"],
+                status=status.HTTP_400_BAD_REQUEST
             )
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)
@@ -162,7 +150,7 @@ class UserProfileViewSet(UserViewSet):
         if request.method in ["PUT", "PATCH"]:
             if "avatar" not in request.data:
                 return Response(
-                    {"errors": ERRORS["no_image"]},
+                    {"errors": ERROR_MESSAGES["no_image"]},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             serializer = AddAvatar(user, data=request.data, partial=True)
@@ -176,26 +164,22 @@ class UserProfileViewSet(UserViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(
-            {"error": "Метод не разрешен"},
+            {"error": ERROR_MESSAGES["method_not_allowed"]},
             status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
     pagination_class = LimitOffsetPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = RecipeFilter
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-
-    def perform_destroy(self, instance):
-        if instance.author != self.request.user:
-            raise PermissionDenied(detail=ERRORS["cant_delete"])
-        instance.delete()
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return RecipeReadSerializer
+        return RecipeWriteSerializer
 
     @action(
         detail=True,
@@ -209,7 +193,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if request.method == "POST":
             if Favorite.objects.filter(recipe=recipe, user=user).exists():
                 return Response(
-                    {"error": ERRORS["already_in_favorites"]},
+                    {"error": ERROR_MESSAGES["already_in_favorites"]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             Favorite.objects.create(user=user, recipe=recipe)
@@ -220,14 +204,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
             favorite = Favorite.objects.filter(recipe=recipe, user=user)
             if not favorite.exists():
                 return Response(
-                    {"errors": ERRORS["not_in_favorites"]},
+                    {"errors": ERROR_MESSAGES["not_in_favorites"]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             favorite.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(
-            {"error": "Метод не разрешен"},
+            {"error": ERROR_MESSAGES["method_not_allowed"]},
             status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
@@ -244,7 +228,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if request.method == "POST":
             if ShoppingCart.objects.filter(recipe=recipe, user=user).exists():
                 return Response(
-                    {"error": ERRORS["already_in_cart"]},
+                    {"error": ERROR_MESSAGES["already_in_cart"]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             ShoppingCart.objects.create(user=user, recipe=recipe)
@@ -258,14 +242,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
             if not shopping_cart.exists():
                 return Response(
-                    {"errors": ERRORS["not_in_cart"]},
+                    {"errors": ERROR_MESSAGES["not_in_cart"]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             shopping_cart.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(
-            {"error": "Метод не разрешен"},
+            {"error": ERROR_MESSAGES["method_not_allowed"]},
             status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
@@ -312,7 +296,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         content = buffer.getvalue()
         buffer.close()
 
-        cache.set(cache_key, content, 300)  # кэшируем на 5 минут
+        cache.set(cache_key, content, 300)
 
         response = HttpResponse(content, content_type="text/csv")
         content_disposition = (
@@ -337,9 +321,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def generate_hash(self, input_str):
         """Генерация 8-символьного хэша"""
-        # Создание хэша в формате SHA256
         hash_bytes = hashlib.sha256(input_str.encode()).digest()
-        # Кодируем в base64 и берем первые 8 символов
         return base64.urlsafe_b64encode(hash_bytes).decode()[:8]
 
 
@@ -357,6 +339,6 @@ def recipe_hash_redirect(request, url_hash):
     except Exception as e:
         logger.error(f"Error redirecting hash {url_hash}: {str(e)}")
         return Response(
-            {"error": "Рецепт не найден"},
+            {"error": ERROR_MESSAGES["recipe_not_found"]},
             status=status.HTTP_404_NOT_FOUND
         )

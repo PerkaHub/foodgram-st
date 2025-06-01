@@ -1,7 +1,9 @@
+import re
+
 from django.core.exceptions import ValidationError
 from django.utils.deconstruct import deconstructible
 
-import re
+from const.const import USERNAME_VALIDATION_MESSAGE
 
 
 @deconstructible
@@ -12,13 +14,7 @@ class AllowedCharactersUsernameValidator:
 
     def __call__(self, value):
         if not self.regex.fullmatch(value):
-            raise ValidationError(
-                "Username может содержать только латинские буквы, "
-                "цифры и знаки @/./+/-/_"
-            )
+            raise ValidationError(USERNAME_VALIDATION_MESSAGE)
 
     def get_help_text(self):
-        return (
-            "Username может содержать только латинские буквы, "
-            "цифры и знаки @/./+/-/_"
-        )
+        return (USERNAME_VALIDATION_MESSAGE)

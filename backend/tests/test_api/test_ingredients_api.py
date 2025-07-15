@@ -16,12 +16,12 @@ def test_with_client_get_ingredients(client):
 
 
 @pytest.mark.parametrize(
-        'id, name, expected_status',
-        (
-            (1, 'абрикосовое варенье', HTTPStatus.OK),
-            (55, 'арбузная мякоть', HTTPStatus.OK),
-            (3000, None, HTTPStatus.NOT_FOUND)
-        )
+    'id, name, expected_status',
+    (
+        (1, 'абрикосовое варенье', HTTPStatus.OK),
+        (55, 'арбузная мякоть', HTTPStatus.OK),
+        (3000, None, HTTPStatus.NOT_FOUND)
+    )
 )
 @pytest.mark.django_db
 def test_with_client_get_ingredient(client, id, name, expected_status):

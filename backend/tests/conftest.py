@@ -77,6 +77,8 @@ def recipe(author):
 @pytest.fixture
 def mock_image_base64():
     """Фикстура возвращает валидное base64-изображение."""
-    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAgMA' \
-        'AABieywaAAAACVBMVEUAAAD///9fX1/S0ecCAAAACXBIWXMAAA7EAAAOxAGVKw4b' \
+    return (
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAgMA'
+        'AABieywaAAAACVBMVEUAAAD///9fX1/S0ecCAAAACXBIWXMAAA7EAAAOxAGVKw4b'
         'AAAACklEQVQImWNoAAAAggCByxOyYQAAAABJRU5ErkJggg=='
+    )

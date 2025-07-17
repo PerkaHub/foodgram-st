@@ -33,12 +33,18 @@ def django_db_setup(django_db_blocker):
 
 @pytest.fixture
 def author(django_user_model):
-    return django_user_model.objects.create(username='Автор')
+    return django_user_model.objects.create(
+        email='author@gmail.ru',
+        username='Автор'
+    )
 
 
 @pytest.fixture
 def not_author(django_user_model):
-    return django_user_model.objects.create(username='Не автор')
+    return django_user_model.objects.create(
+        email='not_author@gmail.ru',
+        username='Не автор'
+    )
 
 
 @pytest.fixture
